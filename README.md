@@ -10,10 +10,10 @@ Usability changes
 Formel1 bets
 
 Spillere
-	Hold og top3 per sæson
+	Hold og top3 per sÃ¦son
 
 Bets
-	Både mod hinanden
+	BÃ¥de mod hinanden
 	Og betmaskinen agtigt
 
 Installation
