@@ -21,4 +21,4 @@ Installation
 
 To run formel1 install all dependencies (guess) and run
 
-plackup -r app.psgi
+./f1bets.pl daemon
