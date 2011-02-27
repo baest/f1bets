@@ -1,0 +1,27 @@
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title id='title'>Formel1 bets</title>
+
+		<!-- ** CSS ** -->
+		<!-- base library -->
+		<link rel="stylesheet" type="text/css" href="<%= $extjs_server %>/extjs4/resources/css/ext-all.css" />
+		<link rel="stylesheet" type="text/css" href="/css/app.css" />
+
+		<!-- overrides to base library -->
+	</head>
+	<body>
+		<div id="header" class="x-panel-header x-hide-display">
+			Formel1 bets
+		</div>
+		<div id="menu" class="x-hide-display">
+		</div>
+		<div id="content" class="x-hide-display">
+			<p>dsfsadfasdfasdfdsafa</p>
+		</div>
+	</body>
+
+	<script type="text/javascript" src="<%= $extjs_server %>/extjs4/bootstrap.js"></script>
+	<script type="text/javascript" src="/js/app.js"></script>
+</html>
+
