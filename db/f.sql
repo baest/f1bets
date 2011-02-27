@@ -16,30 +16,8 @@ CREATE TABLE bet (
 , winner BIGINT
 , season INTEGER
 );
---
---DROP TABLE IF EXISTS turn CASCADE;
---CREATE TABLE turn (
---	id SERIAL NOT NULL,
---	game_id INTEGER NOT NULL,
---	player_id INTEGER NOT NULL,
---	timestamp INTEGER NOT NULL,
---	name TEXT NOT NULL,
---	sip INTEGER NOT NULL DEFAULT 0,
---	push_ups INTEGER NOT NULL DEFAULT 0,
---	turn_around INTEGER NOT NULL DEFAULT 0,
---	piss_pass INTEGER NOT NULL DEFAULT 0
---);
---
---DROP TABLE IF EXISTS what_to_do CASCADE;
---CREATE TABLE what_to_do (
---	id SERIAL NOT NULL,
---	what TEXT NOT NULL,
---	sip INTEGER NOT NULL DEFAULT 0,
---	push_ups INTEGER NOT NULL DEFAULT 0,
---	turn_around INTEGER NOT NULL DEFAULT 0,
---	piss_pass INTEGER NOT NULL DEFAULT 0
---);
---
+CREATE INDEX bet_season ON bet (season);
+
 --DROP VIEW IF EXISTS v_next_what_to_do CASCADE;
 --CREATE OR REPLACE VIEW v_next_what_to_do AS 
 --	SELECT *
