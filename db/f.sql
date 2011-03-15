@@ -1,30 +1,33 @@
-DROP TABLE IF EXISTS "user" CASCADE;
-CREATE TABLE "user" (
+DROP TABLE IF EXISTS b_user CASCADE;
+CREATE TABLE b_user (
   id BIGSERIAL NOT NULL PRIMARY KEY
 , name TEXT NOT NULL
 , fullname TEXT NOT NULL
 , password TEXT
 , email TEXT
 );
-CREATE UNIQUE INDEX user_name ON "user" (name);
+CREATE UNIQUE INDEX b_user_name ON b_user (name);
 
 DROP TABLE IF EXISTS bet CASCADE;
 CREATE TABLE bet (
-  id BIGSERIAL NOT NULL
-, players BIGINT[]
+  id BIGSERIAL NOT NULL PRIMARY KEY
+, bookie BIGINT NOT NULL REFERENCES b_user
+, takers BIGINT[]
 , description TEXT NOT NULL
-, winner BIGINT
-, season INTEGER
+, bet_start TIMESTAMP NOT NULL
+, bet_end TIMESTAMP NOT NULL
+, bookie_won BOOLEAN
+, season INTEGER NOT NULL DEFAULT 2011
+, paid BOOLEAN DEFAULT false
 );
 CREATE INDEX bet_season ON bet (season);
 
---DROP VIEW IF EXISTS v_next_what_to_do CASCADE;
---CREATE OR REPLACE VIEW v_next_what_to_do AS 
---	SELECT *
---	FROM what_to_do
---	ORDER BY random()
---	LIMIT 1;
---
+DROP TABLE IF EXISTS subcription_payment CASCADE;
+CREATE TABLE subcription_payment (
+  id BIGSERIAL NOT NULL PRIMARY KEY
+, member BIGINT NOT NULL
+);
+
 --DROP VIEW IF EXISTS v_players CASCADE;
 --CREATE OR REPLACE VIEW v_players AS 
 --	SELECT g.id as game_id, p.* 
@@ -42,9 +45,9 @@ CREATE INDEX bet_season ON bet (season);
 --	LIMIT 1;
 --$$ LANGUAGE SQL;
 
-COPY "user" ("name", fullname) FROM STDIN WITH DELIMITER '|';
+COPY b_user ("name", fullname) FROM STDIN WITH DELIMITER '|';
 baest|baest
-Michael|Michael Halberg
+michael|Michael Halberg
 klein|Søren Klein
 kenneth|Kenneth Halberg
 huset|House always wins
