@@ -22,3 +22,8 @@ Installation
 To run formel1 install all dependencies (guess) and run
 
 ./f1bets.pl daemon
+
+
+Todo
+---------------------------
+- Implement forms like: http://noedweb/extjs4/examples/form/checkout.html

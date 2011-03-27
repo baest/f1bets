@@ -1,3 +1,7 @@
+CREATE OR REPLACE FUNCTION to_datetext(timestamptz) RETURNS TEXT AS $$
+	SELECT to_char($1, 'DD/MM-YYYY HH24:MI');
+$$ LANGUAGE SQL IMMUTABLE;
+
 DROP TABLE IF EXISTS b_user CASCADE;
 CREATE TABLE b_user (
   id BIGSERIAL NOT NULL PRIMARY KEY
@@ -15,12 +19,21 @@ CREATE TABLE bet (
 , takers BIGINT[]
 , description TEXT NOT NULL
 , bet_start TIMESTAMP NOT NULL
-, bet_end TIMESTAMP NOT NULL
+, bet_end TIMESTAMP NOT NULL DEFAULT '2011-11-28'
 , bookie_won BOOLEAN
+, house_won BOOLEAN
 , season INTEGER NOT NULL DEFAULT 2011
 , paid BOOLEAN DEFAULT false
 );
 CREATE INDEX bet_season ON bet (season);
+
+CREATE OR REPLACE VIEW v_bet AS
+	SELECT *, to_datetext(bet_start) as bet_start_text 
+		, to_datetext(bet_end) as bet_end_text 
+	FROM bet;
+
+CREATE OR REPLACE VIEW v_finished_bet AS
+	SELECT * FROM v_bet WHERE COALESCE(bookie_won, house_won) IS NOT NULL;
 
 DROP TABLE IF EXISTS subcription_payment CASCADE;
 CREATE TABLE subcription_payment (
@@ -45,12 +58,56 @@ CREATE TABLE subcription_payment (
 --	LIMIT 1;
 --$$ LANGUAGE SQL;
 
+CREATE OR REPLACE FUNCTION tf_save_bet() RETURNS trigger AS $$
+BEGIN
+	IF random() < .03 THEN
+		RAISE NOTICE 'house!!!';
+		NEW.takers := array_append(NEW.takers, f_get_user('house'));
+		NEW.house_won := true;
+		NEW.bookie_won := NULL;
+	END IF;
+
+	RETURN NEW;
+END
+$$ LANGUAGE PLPGSQL;
+
+CREATE TRIGGER trig_bet BEFORE INSERT OR UPDATE ON bet FOR EACH ROW EXECUTE PROCEDURE tf_save_bet();
+
 COPY b_user ("name", fullname) FROM STDIN WITH DELIMITER '|';
 baest|baest
 michael|Michael Halberg
 klein|Søren Klein
 kenneth|Kenneth Halberg
-huset|House always wins
+house|House always wins
 \.
 
+CREATE OR REPLACE FUNCTION f_get_user(p_name TEXT) RETURNS BIGINT AS $$
+	SELECT id FROM b_user WHERE name = $1 LIMIT 1;
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION f_get_user_a(p_name TEXT) RETURNS BIGINT[] AS $$
+	SELECT ARRAY[id] FROM b_user WHERE name = $1 LIMIT 1;
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION f_get_users(p_name TEXT[]) RETURNS BIGINT[] AS $$
+	SELECT ARRAY(SELECT id FROM b_user WHERE name =ANY ($1));
+$$ LANGUAGE SQL;
+
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('klein'), f_get_user_a('kenneth'), 'Maclaren kommer ikke på top 10, de 3 første løb', '2011-03-27 14:00');
+
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('baest'), f_get_user_a('michael'), 'Schumi har flere point end rosberg efter sæsonen', '2011-03-27 14:00');
+
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('baest'), f_get_users(ARRAY['michael', 'kenneth', 'klein']), 'Massa vinder over Alonso i point', '2011-03-27 14:00');
+
+INSERT INTO bet (bookie, takers, description, bet_start, bookie_won) VALUES(f_get_user('baest'), f_get_users(ARRAY['michael', 'kenneth', 'klein']), 'Mindst en Red bull og en Maclaren udgår pga. tekniske skader', '2011-03-27 11:00', false);
+
+INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('klein'), f_get_users(ARRAY['kenneth', 'klein']), 'Button ikke laver en overhaling inden for 10 omgange fra omgang 3.', '2011-03-27 11:00', '2011-03-27 12:00', false);
+
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('michael'), f_get_users(ARRAY['baest', 'klein']), 'Kiesa får lavet en facial', '2011-03-27 11:00');
+
+
+--Halberg siger team USA får ingen point, bæst tager op
+--Halberg siger team USA får præcis 1 point, Klein, bæst tager op
+--Huset har 1% chance for at tage et bet og vinder 100% af betsne
+--Hvert bet har en sidste deltagelse og en udløbsdato. Alle bets har en udbyder og x takers. Enten betaler takers eller udbyder
 

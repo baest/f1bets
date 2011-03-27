@@ -8,25 +8,17 @@
 		<link rel="stylesheet" type="text/css" href="<%= $extjs_server %>/extjs4/resources/css/ext-all.css" />
 		<link rel="stylesheet" type="text/css" href="/css/app.css" />
 
+		<script type="text/javascript" src="<%= $extjs_server %>extjs4/bootstrap.js"></script>
+		<!-- <script type="text/javascript" src="<%= $extjs_server %>extjs4/src/core/locale/ext-lang-da.js"></script> -->
+		<script type="text/javascript" src="/js/app.js"></script>
+
 		<!-- overrides to base library -->
 	</head>
 	<body>
 		<div id="header" class="x-panel-header x-hide-display">
 			Formel1 bets
 		</div>
-		<div id="menu" class="x-hide-display">
-			<ul>
-				<li><a href="">Se bets</a></li>
-				<li><a href="">Lav bet</a></li>
-				<li><a href="">Kontigent</a></li>
-			</ul>
-		</div>
-		<div id="content" class="x-hide-display">
-		</div>
 	</body>
 
-	<script type="text/javascript" src="<%= $extjs_server %>extjs4/bootstrap.js"></script>
-	<!-- <script type="text/javascript" src="<%= $extjs_server %>extjs4/src/core/locale/ext-lang-da.js"></script> -->
-	<script type="text/javascript" src="/js/app.js"></script>
 </html>
 
