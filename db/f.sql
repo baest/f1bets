@@ -71,7 +71,13 @@ BEGIN
 END
 $$ LANGUAGE PLPGSQL;
 
-CREATE TRIGGER trig_bet BEFORE INSERT OR UPDATE ON bet FOR EACH ROW EXECUTE PROCEDURE tf_save_bet();
+CREATE TRIGGER trig_bet BEFORE INSERT ON bet FOR EACH ROW EXECUTE PROCEDURE tf_save_bet();
+
+---- bets bookie har tabt og hvor mange tyvere han skal betale
+--SELECT bookie as user, sum(array_length(takers, 1)) FROM v_finished_bet WHERE NOT bookie_won OR house_won GROUP BY bookie;
+--
+---- bets bookie har vundet og hvor mange tyvere han skal betale
+--SELECT unnest(takers) as user, COUNT(*) FROM v_finished_bet WHERE bookie_won OR house_won GROUP BY 1;
 
 COPY b_user ("name", fullname) FROM STDIN WITH DELIMITER '|';
 baest|baest
@@ -93,17 +99,17 @@ CREATE OR REPLACE FUNCTION f_get_users(p_name TEXT[]) RETURNS BIGINT[] AS $$
 	SELECT ARRAY(SELECT id FROM b_user WHERE name =ANY ($1));
 $$ LANGUAGE SQL;
 
-INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('klein'), f_get_user_a('kenneth'), 'Maclaren kommer ikke på top 10, de 3 første løb', '2011-03-27 14:00');
+INSERT INTO bet (bookie, takers, description, bet_start, bookie_won) VALUES(f_get_user('klein'), f_get_user_a('kenneth'), 'Maclaren kommer ikke på top 10, de 3 første løb', '2011-03-27 7:00', false);
 
-INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('baest'), f_get_user_a('michael'), 'Schumi har flere point end rosberg efter sæsonen', '2011-03-27 14:00');
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('baest'), f_get_user_a('michael'), 'Schumi har flere point end rosberg efter sæsonen', '2011-03-27 7:00');
 
-INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('baest'), f_get_users(ARRAY['michael', 'kenneth', 'klein']), 'Massa vinder over Alonso i point', '2011-03-27 14:00');
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('baest'), f_get_users(ARRAY['michael', 'kenneth', 'klein']), 'Massa vinder over Alonso i point', '2011-03-27 7:00');
 
-INSERT INTO bet (bookie, takers, description, bet_start, bookie_won) VALUES(f_get_user('baest'), f_get_users(ARRAY['michael', 'kenneth', 'klein']), 'Mindst en Red bull og en Maclaren udgår pga. tekniske skader', '2011-03-27 11:00', false);
+INSERT INTO bet (bookie, takers, description, bet_start, bookie_won) VALUES(f_get_user('baest'), f_get_users(ARRAY['michael', 'kenneth', 'klein']), 'Mindst en Red bull og en Maclaren udgår pga. tekniske skader', '2011-03-27 7:00', false);
 
-INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('klein'), f_get_users(ARRAY['kenneth', 'klein']), 'Button ikke laver en overhaling inden for 10 omgange fra omgang 3.', '2011-03-27 11:00', '2011-03-27 12:00', false);
+INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('klein'), f_get_users(ARRAY['kenneth', 'klein']), 'Button ikke laver en overhaling inden for 10 omgange fra omgang 3.', '2011-03-27 7:00', '2011-03-27 12:00', false);
 
-INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('michael'), f_get_users(ARRAY['baest', 'klein']), 'Kiesa får lavet en facial', '2011-03-27 11:00');
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('michael'), f_get_users(ARRAY['baest', 'klein']), 'Kiesa får lavet en facial', '2011-03-27 7:00');
 
 
 --Halberg siger team USA får ingen point, bæst tager op
