@@ -1,8 +1,19 @@
-function get_user(id) {
+function get_user(id, td, obj) {
 	return Ext.getStore('user').getById(id).get('name');
 }
+function get_users(arr) {
+	return arr.map(get_user).join(', ');
+}
+
 
 function register_models_stores() {
+	Ext.data.Types.INTARRAY = {
+		convert: function(v, data) {
+			return v.map(Ext.data.Types.INT.convert);
+		}
+	,	type: 'IntArray'
+	};
+	
 	Ext.define('Ext.grid.boolheader', {
 		extend: 'Ext.grid.BooleanHeader'
 	, alias: 'widget.boolheader'
@@ -14,7 +25,7 @@ function register_models_stores() {
 		fields: [
 			{name: 'id', type: 'int'}
 		, {name: 'bookie', type: 'int'}
-		, {name: 'takers', type: 'int'}
+		, {name: 'takers', type: 'IntArray'}
 		, {name: 'description', type: 'text'}
 		, {name: 'bet_start_text', type: 'text'}
 		, {name: 'bet_end_text', type: 'text'}
@@ -157,6 +168,7 @@ Ext.onReady(function(){
 			,	columnLines: true
 			, headers: [
 					{ text: "Better", dataIndex: 'bookie', renderer: get_user }
+				,	{ text: "Deltager", dataIndex: 'takers', flex: 1, renderer: get_users }
 				, { text: "Bet", dataIndex: 'description', flex: 1 }
 				, { text: "Start", dataIndex: 'bet_start_text' }
 				, { text: "Slut", dataIndex: 'bet_end_text' }
