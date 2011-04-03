@@ -93,7 +93,7 @@ function get_bet_form() {
 		}
 	, defaultType: 'textfield'
 	, defaults: {
-			anchor: '100%'
+			//anchor: '300'
 		}
 	, items: [{
 			fieldLabel: 'Bet udbyder'
@@ -105,12 +105,32 @@ function get_bet_form() {
 		, queryMode: 'local'
 		, typeAhead: true
 		, store: 'user'
+//		, listeners: {
+//				select: function (me, value) {
+//					console.debug(value);
+//					console.debug(value[0].get('name'));
+//					console.debug(Ext.getCmp('takers'));
+//					console.debug(this.up('form').getForm().findField('takers').doQuery(value[0].get('name')));
+//				}
+//			}
 		},{
 			fieldLabel: 'Beskrivelse'
 		, name: 'description'
 		, xtype: 'textareafield'
 		, allowBlank: false
+		,	width: 400
 		, grow: true
+		},{
+			fieldLabel: 'Deltagere'
+		, name: 'takers'
+		, allowBlank: true
+		, xtype: 'combo'
+		, valueField: "id"
+		, displayField: 'name'
+		, queryMode: 'local'
+		,	multiSelect: true
+		, width: 400
+		, store: 'user'
 		},{
 			xtype: 'fieldcontainer'
 		, layout: 'hbox'
@@ -147,7 +167,7 @@ function get_bet_form() {
 		]
 	, buttons: [
 			{ text: 'Cancel' }
-		, { text: 'Save' }
+		, { text: 'Save', handler: function() { this.up('form').getForm().submit(); } }
 		]
 	});
 
@@ -168,7 +188,7 @@ Ext.onReady(function(){
 			,	columnLines: true
 			, headers: [
 					{ text: "Better", dataIndex: 'bookie', renderer: get_user }
-				,	{ text: "Deltager", dataIndex: 'takers', flex: 1, renderer: get_users }
+				,	{ text: "Deltagere", dataIndex: 'takers', flex: 1, renderer: get_users }
 				, { text: "Bet", dataIndex: 'description', flex: 1 }
 				, { text: "Start", dataIndex: 'bet_start_text' }
 				, { text: "Slut", dataIndex: 'bet_end_text' }
@@ -183,7 +203,9 @@ Ext.onReady(function(){
 				title: 'Kontigent'
 			,	html: '&lt;empty panel&gt;'
 			}
-		]});
+		]
+	});
+	tabs.setActiveTab(1);
 
 	new Ext.Viewport({
 		layout: "border"

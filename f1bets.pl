@@ -5,6 +5,7 @@ use File::Basename;
 use File::Slurp 'slurp';
 use DBI;
 use utf8;
+use Data::Dump;
 
 my $dbh = DBI->connect("dbi:Pg:dbname=f1bets", 'pgsql', '');
 
@@ -30,7 +31,9 @@ get '/service/:service' => sub {
 post '/service/:service' => sub {
 	my $self = shift;
 
-	my $func = \&{$self->param('service')};
+	my $func = \&{'create_' . $self->param('service')};
+
+warn $func;
 
 	ddx($self->req->body_params);
 
@@ -39,9 +42,13 @@ post '/service/:service' => sub {
 } => 'json';
 
 sub get_user {
-	my $data = $dbh->selectall_arrayref(q!SELECT * FROM b_user WHERE name <> 'huset' ORDER BY name!, { Slice => {} });
+	my $data = $dbh->selectall_arrayref(q!SELECT * FROM b_user WHERE name <> 'house' ORDER BY name!, { Slice => {} });
 }
 sub get_bet {
+	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_bet!, { Slice => {} });
+}
+
+sub create_bet {
 	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_bet!, { Slice => {} });
 }
 
