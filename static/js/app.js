@@ -9,6 +9,9 @@ function get_users(arr) {
 function register_models_stores() {
 	Ext.data.Types.INTARRAY = {
 		convert: function(v, data) {
+			if (v == null)
+				return;
+
 			return v.map(Ext.data.Types.INT.convert);
 		}
 	,	type: 'IntArray'
@@ -199,7 +202,23 @@ function get_bet_form() {
 		]
 	, buttons: [
 			{ text: 'Cancel' }
-		, { text: 'Save', handler: function() { this.up('form').getForm().submit(); } }
+		, { 
+				text: 'Save'
+			, handler: function() { 
+					var form = this.up('form').getForm();
+					form.submit({
+						success: function() {
+							Ext.Msg.alert('Bet gemt', "Bettet er gemt!");
+							form.reset();
+						}
+					,	failure: function(form, action) {
+							console.debug(action);
+							if (action.result)
+								Ext.Msg.alert('Failed', action.result.msg);
+						}
+					}); 
+				}
+			}
 		]
 	});
 
