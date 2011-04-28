@@ -111,6 +111,14 @@ INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VA
 
 INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('michael'), f_get_users(ARRAY['baest', 'klein']), 'Kiesa får lavet en facial', '2011-03-27 7:00');
 
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('klein'), f_get_users(ARRAY['baest']), 'f1bets bliver ikke færdigt i løbet af sæsonen', '2011-04-10 11:00');
+
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('klein'), f_get_users(ARRAY['baest']), 'f1bets bliver ikke færdigt i løbet af sæsonen (repeat)', '2011-04-17 11:00');
+
+INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('kenneth'), f_get_users(ARRAY['baest']), 'Maclaren vinder flere løb end ferrari', '2011-04-17 9:00');
+
+INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('michael'), f_get_users(ARRAY['baest']), 'Alonso slutter før Massa i China', '2011-04-17 9:00', '2011-04-17 11:00', false);
+
 
 --Halberg siger team USA får ingen point, bæst tager op
 --Halberg siger team USA får præcis 1 point, Klein, bæst tager op
