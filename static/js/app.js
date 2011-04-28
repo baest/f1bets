@@ -14,15 +14,27 @@ function register_models_stores() {
 	,	type: 'IntArray'
 	};
 	
-	Ext.define('Ext.grid.boolheader', {
-		extend: 'Ext.grid.BooleanHeader'
+	Ext.define('f1bet.grid.boolheader', {
+		extend: 'Ext.grid.column.Boolean'
 	, alias: 'widget.boolheader'
 	, trueText: 'Ja'
 	, falseText: 'Nej'
+	,	undefinedText: '-'
+	, constructor: function(cfg){
+			this.callParent(arguments);
+			ren = this.renderer;
+			this.renderer = function(value) {
+				if (value === null)
+					value = undefined;
+
+				return ren(value);
+			}
+		}
 	});	
 
-	Ext.regModel('bet', {
-		fields: [
+	Ext.define("bet", {
+		extend: "Ext.data.Model"
+	, fields: [
 			{name: 'id', type: 'int'}
 		, {name: 'bookie', type: 'int'}
 		, {name: 'takers', type: 'IntArray'}
@@ -36,8 +48,9 @@ function register_models_stores() {
 		, belongsTo: 'user'
 	});
 
-	Ext.regModel('user', {
-		fields: [
+	Ext.define("user", {
+		extend: "Ext.data.Model"
+	, fields: [
 			{name: 'id', type: 'int'}
 		, {name: 'name'}
 		]
@@ -97,6 +110,7 @@ function get_bet_form() {
 		}
 	, items: [{
 			fieldLabel: 'Bet udbyder'
+		, id: 'bookie'
 		, name: 'bookie'
 		, allowBlank: false
 		, xtype: 'combo'
@@ -106,11 +120,18 @@ function get_bet_form() {
 		, typeAhead: true
 		, store: 'user'
 //		, listeners: {
-//				select: function (me, value) {
-//					console.debug(value);
-//					console.debug(value[0].get('name'));
-//					console.debug(Ext.getCmp('takers'));
-//					console.debug(this.up('form').getForm().findField('takers').doQuery(value[0].get('name')));
+//				blur: function (me, value) {
+//					console.debug(me.store);
+//					console.debug(me.getValue());
+//					me.store.filterBy(function(rec) { return (rec.get('id') != me.getValue()) });
+//					//me.store.filterBy(function(rec) { return (rec.get('id') != 1) });
+//					//Ext.getCmp("combobox-1034").store.filterBy(function(rec) { return (rec.get('id') != 1) });
+//					console.debug(me.store);
+//
+////					console.debug(value);
+////					console.debug(value[0].get('name'));
+////					console.debug(Ext.getCmp('takers'));
+////					console.debug(this.up('form').getForm().findField('takers').doQuery(value[0].get('name')));
 //				}
 //			}
 		},{
@@ -131,6 +152,17 @@ function get_bet_form() {
 		,	multiSelect: true
 		, width: 400
 		, store: 'user'
+		, listeners: {
+				expand: function (me) {
+					var value = Ext.getCmp('bookie').getValue();
+
+					if (!value)
+						return;
+						
+					me.store.filterBy(function(rec) { return (rec.get('id') != value) });
+					console.debug(me.store);
+				}
+			}
 		},{
 			xtype: 'fieldcontainer'
 		, layout: 'hbox'
@@ -186,7 +218,7 @@ Ext.onReady(function(){
 				title: 'Se bets'
 			,	store: Ext.getStore('bet')
 			,	columnLines: true
-			, headers: [
+			, columns: [
 					{ text: "Better", dataIndex: 'bookie', renderer: get_user }
 				,	{ text: "Deltagere", dataIndex: 'takers', flex: 1, renderer: get_users }
 				, { text: "Bet", dataIndex: 'description', flex: 1 }
@@ -203,9 +235,17 @@ Ext.onReady(function(){
 				title: 'Kontigent'
 			,	html: '&lt;empty panel&gt;'
 			}
+		,	{
+				title: 'Status'
+			,	html: '&lt;empty panel&gt;'
+			}
 		]
+	, listeners: {
+			afterrender: function() {
+				tabs.setActiveTab(1);
+			}
+		}
 	});
-	tabs.setActiveTab(1);
 
 	new Ext.Viewport({
 		layout: "border"
