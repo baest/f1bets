@@ -44,6 +44,9 @@ sub get_user {
 sub get_bet {
 	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_bet!, { Slice => {} });
 }
+sub get_cal {
+	my $data = $dbh->selectall_arrayref(q!SELECT name, to_datetext(start) as start FROM f1_cal ORDER BY start!, { Slice => {} });
+}
 
 sub create_bet {
 	my ($self) = @_;
@@ -51,20 +54,30 @@ sub create_bet {
 	my %p;
 	my @list = @{$self->req->body_params->params};
 	for(my $i = 0; $i < @list; $i += 2) {
-		if (exists $p{$list[$i]}) {
-			$p{$list[$i]} = [$p{$list[$i]}, $list[$i+1]];
+		my ($key, $val) = @list[$i,$i+1];
+		if (exists $p{$key}) {
+			if (ref $p{$key}) {
+				push @{$p{$key}}, $val;
+			}
+			else {
+				$p{$key} = [$p{$key}, $val];
+			}
 		}
 		else {
-			$p{$list[$i]} = $list[$i+1];
+			$p{$key} = $val;
 		}
 	}
 
 	foreach(qw/start end/) {
+		my $key = "bet_$_";
 		my $lookup = "bet_${_}_time";
+		$p{$key} = convert_danish_date($p{$key}) if $p{$key};
 		if ($p{$lookup}) {
-			$p{"bet_$_"} .= ' ' . $p{$lookup};
+			$p{$key} .= ' ' . $p{$lookup};
 		}
 	}
+
+	$p{takers} = [ $p{takers} ] unless ref $p{takers};
 
 	return unless ($p{bookie} && $p{description});
 	my @fields = qw/bookie takers description bet_start bet_end/;
@@ -72,6 +85,14 @@ sub create_bet {
 	my $params = join(", ", ("?") x @fields);
 	my ($guid) = $dbh->selectrow_array(qq!INSERT INTO bet ($fields) VALUES($params) RETURNING id!, {}, @p{@fields});
 	return { guid => $guid, success => Mojo::JSON->true };
+}
+
+sub convert_danish_date {
+	my ($date) = @_;
+
+	return "$3/$2/$1" if $date =~ m!(\d{2})/(\d{2})/(\d{2})!;
+
+	return $date;
 }
 
 app->start;
