@@ -87,7 +87,24 @@ function register_models_stores() {
 			}
 		}
 	}));
+		Ext.define("cal", {
+				extend: "Ext.data.Model"
+			, fields: [ 'name', 'start' ]
+		})
 
+	Ext.regStore('cal', {
+		model: 'cal'
+	, proxy: {
+			type: 'ajax'
+		, url : '/service/cal'
+		, autoLoad: true
+		, reader: {
+				type: 'json'
+			, root: 'cal'
+			}
+		}
+	});
+	console.debug(Ext.getStore('cal'));
 	//var abet = Ext.ModelMgr.create({bookie: 1}, 'bet');
 
 	//console.debug(abet);
@@ -235,7 +252,7 @@ Ext.onReady(function(){
 		items: [
 			new Ext.grid.GridPanel({
 				title: 'Se bets'
-			,	store: Ext.getStore('bet')
+			,	store: 'bet'
 			,	columnLines: true
 			, columns: [
 					{ text: "Better", dataIndex: 'bookie', renderer: get_user }
@@ -247,7 +264,6 @@ Ext.onReady(function(){
 				, { text: "Huset!", dataIndex: 'house_won', xtype: 'boolheader' }
 				, { text: "Betalt", dataIndex: 'paid', xtype: 'boolheader' }
 				]
-				
 			})
 		,	get_bet_form()
 		,	{
@@ -258,10 +274,24 @@ Ext.onReady(function(){
 				title: 'Status'
 			,	html: '&lt;empty panel&gt;'
 			}
+		,	{
+				title: 'Kalender'
+			, items: [
+					new Ext.grid.GridPanel({
+						title: 'Se bets'
+					, store: "cal"
+					,	columnLines: true
+					, columns: [
+							{ text: "Race", dataIndex: 'name', flex: 1 }
+						,	{ text: "Start", dataIndex: 'start' }
+						]
+					})
+				]
+			}
 		]
 	, listeners: {
 			afterrender: function() {
-				tabs.setActiveTab(1);
+				//tabs.setActiveTab(1);
 			}
 		}
 	});
