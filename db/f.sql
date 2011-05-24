@@ -41,6 +41,14 @@ CREATE TABLE subcription_payment (
 , member BIGINT NOT NULL
 );
 
+DROP TABLE IF EXISTS f1_cal CASCADE;
+CREATE TABLE f1_cal (
+  id BIGSERIAL NOT NULL PRIMARY KEY
+,	name TEXT NOT NULL
+,	"start" TIMESTAMPTZ NOT NULL
+,	"end" TIMESTAMPTZ NOT NULL
+);
+
 --DROP VIEW IF EXISTS v_players CASCADE;
 --CREATE OR REPLACE VIEW v_players AS 
 --	SELECT g.id as game_id, p.* 
@@ -119,9 +127,18 @@ INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('kenn
 
 INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('michael'), f_get_users(ARRAY['baest']), 'Alonso slutter før Massa i China', '2011-04-17 9:00', '2011-04-17 11:00', false);
 
+INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('michael'), f_get_users(ARRAY['baest']), 'Rosberg slutter over Schumacher i Spanien', '2011-05-22 14:00', '2011-05-17 14:05', false);
+
+INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('kenneth'), f_get_users(ARRAY['michael','klein']), 'Kenneth henter 16 romsnegle i næste reklamepause', '2011-05-22 14:00', '2011-05-17 14:05', false);
+
+INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('klein'), f_get_users(ARRAY['kenneth']), 'Hamilton kører af med alle 4 dæk i sving 11-15', '2011-05-22 14:00', '2011-05-17 14:05', false);
+
+INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('kenneth'), f_get_users(ARRAY['klein']), 'Hamilton gennemfører', '2011-05-22 14:00', '2011-05-17 14:05', true);
+
 
 --Halberg siger team USA får ingen point, bæst tager op
 --Halberg siger team USA får præcis 1 point, Klein, bæst tager op
 --Huset har 1% chance for at tage et bet og vinder 100% af betsne
 --Hvert bet har en sidste deltagelse og en udløbsdato. Alle bets har en udbyder og x takers. Enten betaler takers eller udbyder
 
+\i db/f1_cal.sql
