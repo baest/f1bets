@@ -39,13 +39,13 @@ post '/service/:service' => sub {
 } => 'json';
 
 sub get_user {
-	my $data = $dbh->selectall_arrayref(q!SELECT * FROM b_user WHERE name <> 'house' ORDER BY name!, { Slice => {} });
+	my $data = $dbh->selectall_arrayref(q!SELECT id, name FROM b_user WHERE name <> 'house' ORDER BY name!, { Slice => {} });
 }
 sub get_bet {
 	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_bet!, { Slice => {} });
 }
 sub get_cal {
-	my $data = $dbh->selectall_arrayref(q!SELECT name, to_datetext(start) as start FROM f1_cal ORDER BY start!, { Slice => {} });
+	my $data = $dbh->selectall_arrayref(q!SELECT name, to_datetext(start) as f1_start FROM f1_cal ORDER BY start!, { Slice => {} });
 }
 
 sub create_bet {
@@ -90,7 +90,8 @@ sub create_bet {
 sub convert_danish_date {
 	my ($date) = @_;
 
-	return "$3/$2/$1" if $date =~ m!(\d{2})/(\d{2})/(\d{2})!;
+	#date/month/year
+	return "$3/$2/$1" if $date =~ m!(\d{2})/(\d{2})-(\d{4})!;
 
 	return $date;
 }

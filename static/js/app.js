@@ -72,12 +72,17 @@ function register_models_stores() {
 			, root: 'user'
 			}
 		}
+	,	listeners: {
+			load: function(me, recs) {
+					Ext.getStore('bet').load();
+			}
+		}
 	}));
 
 	Ext.regStore(new Ext.data.Store({
 		model: 'bet'
 	, storeId: 'bet'
-	, autoLoad: true
+//	, autoLoad: true
 	, proxy: {
 			type: 'ajax'
 		, url : '/service/bet'
@@ -87,24 +92,24 @@ function register_models_stores() {
 			}
 		}
 	}));
-		Ext.define("cal", {
-				extend: "Ext.data.Model"
-			, fields: [ 'name', 'start' ]
-		})
+
+	Ext.define("cal", {
+			extend: "Ext.data.Model"
+		, fields: [ 'name', 'f1_start' ]
+	})
 
 	Ext.regStore('cal', {
 		model: 'cal'
 	, proxy: {
 			type: 'ajax'
 		, url : '/service/cal'
-		, autoLoad: true
 		, reader: {
 				type: 'json'
 			, root: 'cal'
 			}
 		}
 	});
-	console.debug(Ext.getStore('cal'));
+	//console.debug(Ext.getStore('cal'));
 	//var abet = Ext.ModelMgr.create({bookie: 1}, 'bet');
 
 	//console.debug(abet);
@@ -195,6 +200,7 @@ function get_bet_form() {
 				name: 'bet_start'
 			, allowBlank: false
 			, xtype: 'datefield'
+			, format: 'd/m-Y'
 			},{
 				name: 'bet_start_time'
 			, xtype: 'timefield'
@@ -211,6 +217,7 @@ function get_bet_form() {
 				name: 'bet_end'
 			, allowBlank: false
 			, xtype: 'datefield'
+			, format: 'd/m-Y'
 			},{
 				name: 'bet_end_time'
 			, xtype: 'timefield'
@@ -226,6 +233,7 @@ function get_bet_form() {
 					form.submit({
 						success: function() {
 							Ext.Msg.alert('Bet gemt', "Bettet er gemt!");
+							Ext.getStore('bet').load();
 							form.reset();
 						}
 					,	failure: function(form, action) {
@@ -249,7 +257,8 @@ Ext.onReady(function(){
 	register_models_stores();
 
 	var tabs = Ext.createWidget('tabpanel', {
-		items: [
+		activeTab: 0
+	,	items: [
 			new Ext.grid.GridPanel({
 				title: 'Se bets'
 			,	store: 'bet'
@@ -276,6 +285,11 @@ Ext.onReady(function(){
 			}
 		,	{
 				title: 'Kalender'
+			, listeners: {
+					activate: function(tab){
+						Ext.getStore('cal').load();
+					}
+				}
 			, items: [
 					new Ext.grid.GridPanel({
 						title: 'Se bets'
@@ -283,7 +297,7 @@ Ext.onReady(function(){
 					,	columnLines: true
 					, columns: [
 							{ text: "Race", dataIndex: 'name', flex: 1 }
-						,	{ text: "Start", dataIndex: 'start' }
+						,	{ text: "Start", dataIndex: 'f1_start' }
 						]
 					})
 				]
