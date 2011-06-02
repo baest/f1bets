@@ -27,13 +27,26 @@ CREATE TABLE bet (
 );
 CREATE INDEX bet_season ON bet (season);
 
+DROP VIEW v_bet CASCADE;
 CREATE OR REPLACE VIEW v_bet AS
 	SELECT *, to_datetext(bet_start) as bet_start_text 
 		, to_datetext(bet_end) as bet_end_text 
+		, (COALESCE(bookie_won, house_won) IS NOT NULL) as is_finished
+		, CASE WHEN (COALESCE(bookie_won, house_won) IS NOT NULL) THEN NULL ELSE paid END as is_paid
 	FROM bet;
 
 CREATE OR REPLACE VIEW v_finished_bet AS
 	SELECT * FROM v_bet WHERE COALESCE(bookie_won, house_won) IS NOT NULL;
+
+CREATE OR REPLACE VIEW v_bet_by_user AS
+	SELECT *, CASE WHEN user_lost THEN takers ELSE 0 END as twenties FROM (
+	SELECT 
+		id, unnest(takers) as user, 1 as takers, description, bet_start, bookie_won, house_won, is_finished, is_paid, (is_finished AND (house_won IS TRUE OR bookie_won IS TRUE)) as user_lost
+	FROM v_bet 
+UNION 
+	SELECT 
+		id, bookie as user, array_length(takers, 1) as takers, description, bet_start, bookie_won, house_won, is_finished, is_paid, (is_finished AND (house_won IS TRUE OR bookie_won IS FALSE)) as user_lost
+	FROM v_bet) as x;
 
 DROP TABLE IF EXISTS subcription_payment CASCADE;
 CREATE TABLE subcription_payment (
@@ -82,17 +95,26 @@ $$ LANGUAGE PLPGSQL;
 CREATE TRIGGER trig_bet BEFORE INSERT ON bet FOR EACH ROW EXECUTE PROCEDURE tf_save_bet();
 
 ---- bets bookie har tabt og hvor mange tyvere han skal betale
---SELECT bookie as user, sum(array_length(takers, 1)) FROM v_finished_bet WHERE NOT bookie_won OR house_won GROUP BY bookie;
---
----- bets bookie har vundet og hvor mange tyvere han skal betale
---SELECT unnest(takers) as user, COUNT(*) FROM v_finished_bet WHERE bookie_won OR house_won GROUP BY 1;
+CREATE OR REPLACE VIEW v_finished_bet_takers AS
+	SELECT bookie as user, sum(array_length(takers, 1)) as sum FROM v_finished_bet WHERE NOT bookie_won OR house_won GROUP BY bookie;
 
-COPY b_user ("name", fullname) FROM STDIN WITH DELIMITER '|';
-baest|baest
-michael|Michael Halberg
-klein|Søren Klein
-kenneth|Kenneth Halberg
-house|House always wins
+---- bets bookie har vundet og hvor mange tyvere han skal betale
+CREATE OR REPLACE VIEW v_finished_bet_bookie AS
+	SELECT unnest(takers) as user, COUNT(*) as sum FROM v_finished_bet WHERE bookie_won OR house_won GROUP BY 1;
+
+CREATE OR REPLACE VIEW v_finished_bet_all AS
+	SELECT * FROM  v_finished_bet_takers
+	UNION SELECT * FROM v_finished_bet_bookie;
+
+CREATE OR REPLACE VIEW v_finished_bet_status AS
+	SELECT "user", SUM(sum)::bigint as sum FROM v_finished_bet_all GROUP BY "user";
+
+COPY b_user ("name", fullname, password) FROM STDIN WITH DELIMITER '|';
+baest|baest|LfM8OLFsAgpQ0UYu
+michael|Michael Halberg|michael01
+klein|Søren Klein|klein02
+kenneth|Kenneth Halberg|kenneth03
+house|House always wins|omgverysecreeet
 \.
 
 CREATE OR REPLACE FUNCTION f_get_user(p_name TEXT) RETURNS BIGINT AS $$
@@ -115,7 +137,7 @@ INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('baes
 
 INSERT INTO bet (bookie, takers, description, bet_start, bookie_won) VALUES(f_get_user('baest'), f_get_users(ARRAY['michael', 'kenneth', 'klein']), 'Mindst en Red bull og en Maclaren udgår pga. tekniske skader', '2011-03-27 7:00', false);
 
-INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('klein'), f_get_users(ARRAY['kenneth', 'klein']), 'Button ikke laver en overhaling inden for 10 omgange fra omgang 3.', '2011-03-27 7:00', '2011-03-27 12:00', false);
+INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VALUES(f_get_user('klein'), f_get_users(ARRAY['kenneth', 'baest']), 'Button ikke laver en overhaling inden for 10 omgange fra omgang 3.', '2011-03-27 7:00', '2011-03-27 12:00', false);
 
 INSERT INTO bet (bookie, takers, description, bet_start) VALUES(f_get_user('michael'), f_get_users(ARRAY['baest', 'klein']), 'Kiesa får lavet en facial', '2011-03-27 7:00');
 
