@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use Mojolicious::Lite;
+use Mojolicious::Sessions;
 use File::Basename;
 use File::Slurp 'slurp';
 use DBI;
@@ -11,25 +12,51 @@ my $dbh = DBI->connect("dbi:Pg:dbname=f1bets", 'pgsql', '');
 
 $dbh->{pg_enable_utf8} = 1;
 
+plugin 'basic_auth';
 app->static->root(File::Basename::dirname(app->static->root) . '/static');
 app->secret('somewhatmoresecret password');
 
+sub auth {
+	my ($self) = @_;
+	my $id = $self->session('user_id');
+
+	return $id if $id;
+
+	$id = $self->basic_auth( realm => \&check_user );
+
+	if ($id) {
+		$self->session(user_id => $id);
+	}
+
+	return $id;
+}
+
+sub check_user {
+	my ($username, $password) = @_;
+	my ($id) = $dbh->selectrow_array('SELECT id FROM b_user WHERE name = ? AND password = ?', {}, $username, $password);
+	return $id;
+}
+
 get '/' => sub { 
 	my ($self) = @_;
+	return unless auth($self);
+	
 	$self->stash(extjs_server => 'http://noedweb/'); 
 } => 'index';
 
 get '/service/:service' => sub {
 	my $self = shift;
+	return unless auth($self);
 
 	my $func = \&{'get_' . $self->param('service')};
 
-	$self->render_json({ $self->param('service') => &$func });
+	$self->render_json({ $self->param('service') => $func->($self) });
 	return;
 } => 'json';
 
 post '/service/:service' => sub {
 	my $self = shift;
+	return unless auth($self);
 
 	my $func = \&{'create_' . $self->param('service')};
 
@@ -39,7 +66,8 @@ post '/service/:service' => sub {
 } => 'json';
 
 sub get_user {
-	my $data = $dbh->selectall_arrayref(q!SELECT id, name FROM b_user WHERE name <> 'house' ORDER BY name!, { Slice => {} });
+	my $self = shift;
+	my $data = $dbh->selectall_arrayref(q!SELECT id, name, (? = id) as me FROM b_user WHERE name <> 'house' ORDER BY name!, { Slice => {} }, $self->session('user_id'));
 }
 sub get_bet {
 	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_bet!, { Slice => {} });
@@ -47,9 +75,16 @@ sub get_bet {
 sub get_cal {
 	my $data = $dbh->selectall_arrayref(q!SELECT name, to_datetext(start) as f1_start FROM f1_cal ORDER BY start!, { Slice => {} });
 }
+sub get_bet_status{
+	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_finished_bet_status ORDER BY user!, { Slice => {} });
+}
+sub get_bet_by_user {
+	my $data = $dbh->selectall_arrayref(q!SELECT (bu.id || '_' || bu."user") as bet_user, bu.*, u.name as user_name FROM v_bet_by_user bu JOIN b_user u ON (u.id = bu."user") ORDER BY user, bet_start!, { Slice => {} });
+}
 
 sub create_bet {
 	my ($self) = @_;
+	return unless auth($self);
 
 	my %p;
 	my @list = @{$self->req->body_params->params};
