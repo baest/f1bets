@@ -22,31 +22,62 @@ CREATE TABLE bet (
 , bet_end TIMESTAMP NOT NULL DEFAULT '2011-11-28'
 , bookie_won BOOLEAN
 , house_won BOOLEAN
-, season INTEGER NOT NULL DEFAULT 2011
-, paid BOOLEAN DEFAULT false
+, season INTEGER NOT NULL DEFAULT EXTRACT('YEAR' FROM NOW())
 );
 CREATE INDEX bet_season ON bet (season);
 
-DROP VIEW v_bet CASCADE;
-CREATE OR REPLACE VIEW v_bet AS
-	SELECT *, to_datetext(bet_start) as bet_start_text 
-		, to_datetext(bet_end) as bet_end_text 
-		, (COALESCE(bookie_won, house_won) IS NOT NULL) as is_finished
-		, CASE WHEN (COALESCE(bookie_won, house_won) IS NOT NULL) THEN NULL ELSE paid END as is_paid
-	FROM bet;
+CREATE OR REPLACE FUNCTION tf_save_bet() RETURNS trigger AS $$
+BEGIN
+	IF true OR random() < .03 OR NEW.house_won THEN
+		RAISE NOTICE 'house!!!';
+		UPDATE bet SET house_won = true, bookie_won = NULL WHERE id = NEW.id;
+		INSERT INTO finished_bet(bet_id, payee, twenties)
+			SELECT NEW.id, payee, 1
+			FROM unnest(NEW.takers) as payee;
+		INSERT INTO finished_bet(bet_id, payee, twenties) VALUES (NEW.id, NEW.bookie, array_length(NEW.takers, 1));
+	END IF;
 
-CREATE OR REPLACE VIEW v_finished_bet AS
-	SELECT * FROM v_bet WHERE COALESCE(bookie_won, house_won) IS NOT NULL;
+	RETURN NEW;
+END
+$$ LANGUAGE PLPGSQL;
 
-CREATE OR REPLACE VIEW v_bet_by_user AS
-	SELECT *, CASE WHEN user_lost THEN takers ELSE 0 END as twenties FROM (
-	SELECT 
-		id, unnest(takers) as user, 1 as takers, description, bet_start, bookie_won, house_won, is_finished, is_paid, (is_finished AND (house_won IS TRUE OR bookie_won IS TRUE)) as user_lost
-	FROM v_bet 
-UNION 
-	SELECT 
-		id, bookie as user, array_length(takers, 1) as takers, description, bet_start, bookie_won, house_won, is_finished, is_paid, (is_finished AND (house_won IS TRUE OR bookie_won IS FALSE)) as user_lost
-	FROM v_bet) as x;
+CREATE TRIGGER trig_bet AFTER INSERT ON bet FOR EACH ROW EXECUTE PROCEDURE tf_save_bet();
+
+CREATE OR REPLACE FUNCTION tf_update_bet() RETURNS trigger AS $$
+BEGIN
+	IF COALESCE(OLD.bookie_won, OLD.house_won) IS NOT NULL THEN
+		RETURN NULL;
+	END IF;
+
+	IF NEW.bookie_won IS NOT NULL THEN
+		IF NEW.bookie_won THEN
+			INSERT INTO finished_bet(bet_id, payee, twenties)
+				SELECT NEW.id, payee, 1
+				FROM unnest(NEW.takers) as payee;
+		END IF;
+
+		IF NOT NEW.bookie_won THEN
+			INSERT INTO finished_bet(bet_id, payee, twenties) VALUES (NEW.id, NEW.bookie, array_length(NEW.takers, 1));
+		END IF;
+	END IF;
+
+	RETURN NEW;
+END
+$$ LANGUAGE PLPGSQL;
+
+CREATE TRIGGER trig_bet_update BEFORE UPDATE ON bet FOR EACH ROW EXECUTE PROCEDURE tf_update_bet();
+
+-- inserted when 
+DROP TABLE IF EXISTS finished_bet CASCADE;
+CREATE TABLE finished_bet (
+  id BIGSERIAL NOT NULL PRIMARY KEY
+, bet_id BIGINT NOT NULL REFERENCES bet(id)
+, payee BIGINT NOT NULL REFERENCES b_user(id)
+, twenties INT CHECK (twenties > 0) NOT NULL
+, paid INT CHECK(paid BETWEEN 0 AND twenties) DEFAULT 0
+);
+CREATE INDEX finished_bet_payee ON finished_bet (payee);
+
 
 DROP TABLE IF EXISTS subcription_payment CASCADE;
 CREATE TABLE subcription_payment (
@@ -62,59 +93,23 @@ CREATE TABLE f1_cal (
 ,	"end" TIMESTAMPTZ NOT NULL
 );
 
---DROP VIEW IF EXISTS v_players CASCADE;
---CREATE OR REPLACE VIEW v_players AS 
---	SELECT g.id as game_id, p.* 
---	FROM player p
---	JOIN game g ON (p.id =ANY (g.players))
---	;
---
---DROP FUNCTION IF EXISTS f_get_next_player(INT);
---CREATE OR REPLACE FUNCTION f_get_next_player(p_game_id INTEGER) RETURNS player AS $$
---	SELECT p.* 
---	FROM player p
---	JOIN game g USING (id)
---	WHERE g.id = $1
---	ORDER BY random() 
---	LIMIT 1;
---$$ LANGUAGE SQL;
+DROP TYPE IF EXISTS log_type;
+CREATE TYPE log_type AS ENUM ('pay', 'new_bet', 'update_bet');
 
-CREATE OR REPLACE FUNCTION tf_save_bet() RETURNS trigger AS $$
-BEGIN
-	IF random() < .03 THEN
-		RAISE NOTICE 'house!!!';
-		NEW.takers := array_append(NEW.takers, f_get_user('house'));
-		NEW.house_won := true;
-		NEW.bookie_won := NULL;
-	END IF;
-
-	RETURN NEW;
-END
-$$ LANGUAGE PLPGSQL;
-
-CREATE TRIGGER trig_bet BEFORE INSERT ON bet FOR EACH ROW EXECUTE PROCEDURE tf_save_bet();
-
----- bets bookie har tabt og hvor mange tyvere han skal betale
-CREATE OR REPLACE VIEW v_finished_bet_takers AS
-	SELECT bookie as user, sum(array_length(takers, 1)) as sum FROM v_finished_bet WHERE NOT bookie_won OR house_won GROUP BY bookie;
-
----- bets bookie har vundet og hvor mange tyvere han skal betale
-CREATE OR REPLACE VIEW v_finished_bet_bookie AS
-	SELECT unnest(takers) as user, COUNT(*) as sum FROM v_finished_bet WHERE bookie_won OR house_won GROUP BY 1;
-
-CREATE OR REPLACE VIEW v_finished_bet_all AS
-	SELECT * FROM  v_finished_bet_takers
-	UNION SELECT * FROM v_finished_bet_bookie;
-
-CREATE OR REPLACE VIEW v_finished_bet_status AS
-	SELECT "user", SUM(sum)::bigint as sum FROM v_finished_bet_all GROUP BY "user";
+DROP TABLE IF EXISTS f1_log CASCADE;
+CREATE TABLE f1_log (
+  id BIGSERIAL NOT NULL PRIMARY KEY
+,	msg TEXT NOT NULL
+, log_type log_type NOT NULL
+,	"start" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+, who BIGSERIAL REFERENCES b_user(id)
+);
 
 COPY b_user ("name", fullname, password) FROM STDIN WITH DELIMITER '|';
 baest|baest|LfM8OLFsAgpQ0UYu
 michael|Michael Halberg|michael01
 klein|Søren Klein|klein02
 kenneth|Kenneth Halberg|kenneth03
-house|House always wins|omgverysecreeet
 \.
 
 CREATE OR REPLACE FUNCTION f_get_user(p_name TEXT) RETURNS BIGINT AS $$
@@ -163,4 +158,6 @@ INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VA
 --Huset har 1% chance for at tage et bet og vinder 100% af betsne
 --Hvert bet har en sidste deltagelse og en udløbsdato. Alle bets har en udbyder og x takers. Enten betaler takers eller udbyder
 
+\i db/f_view.sql
 \i db/f1_cal.sql
+
