@@ -17,6 +17,26 @@ function count_true (key, records){
 	return total;
 }
 
+function load_cal (records, operation, success) {
+	var length = records.length,
+			now = Ext.Date.now()
+			i = 0
+			cdate = 0;
+	
+	do {
+		cdate = Ext.Date.clearTime(Ext.Date.parse(records[i].get('f1_start'), "d/m-Y g:i"));
+		++i;
+	}
+	while(Ext.Date.add(cdate, Ext.Date.DAY, 1) < now);
+
+	if (i > 0)
+		i--;
+
+	var view = Ext.getCmp('cal_grid').getView();
+
+	Ext.fly(view.getNode(i)).addCls('sel');
+}
+
 function register_models_stores() {
 	Ext.data.Types.INTARRAY = {
 		convert: function(v, data) {
@@ -67,7 +87,6 @@ function register_models_stores() {
 		, {name: 'bet_end_text', type: 'text'}
 		, {name: 'bookie_won', type: 'boolean'}
 		, {name: 'house_won', type: 'boolean'}
-		, {name: 'is_paid', type: 'boolean'}
 		, {name: 'is_finished', type: 'boolean'}
 		]
 		, belongsTo: 'user'
@@ -132,7 +151,8 @@ function register_models_stores() {
 			extend: "Ext.data.Model"
 		, fields: [
 				{ name: 'user', type: 'int' }
-			,	{ name: 'sum', type: 'int' }
+			,	{ name: 'lost', type: 'int' }
+			,	{ name: 'paid', type: 'int' }
 			]
 		, belongsTo: 'user'
 	});
@@ -347,7 +367,6 @@ Ext.onReady(function(){
 				, { text: "Better vinder", dataIndex: 'bookie_won', xtype: 'boolheader' }
 				, { text: "Huset!", dataIndex: 'house_won', xtype: 'boolheader' }
 				, { text: "Afsluttet", dataIndex: 'is_finished', xtype: 'boolheader' }
-				, { text: "Betalt", dataIndex: 'is_paid', xtype: 'boolheader' }
 				]
 			})
 		,	get_bet_form()
@@ -426,7 +445,7 @@ Ext.onReady(function(){
 					]
 			}
 		,	{
-				title: 'Status'
+				title: 'Udeståender'
 			, xtype: 'gridpanel'
 			, listeners: {
 					activate: function(tab){
@@ -437,28 +456,72 @@ Ext.onReady(function(){
 			,	columnLines: true
 			, columns: [
 					{ text: "User", dataIndex: 'user', flex: 1, renderer: get_user }
-				,	{ text: "20ere", dataIndex: 'sum' }
+				,	{ text: "20ere", dataIndex: 'lost' }
+				, { 
+            xtype:'actioncolumn'
+					, align: "center"
+					,	items: [{
+							icon: 'img/dankort.png'  // Use a URL in the icon config
+						,	tooltip: 'Betal'
+						,	handler: function(grid, rowIndex, colIndex) {
+								var rec = grid.getStore().getAt(rowIndex)
+										count = rec.get('lost')
+										who = rec.get('user');
+									;
+
+								if (count < 1)
+									return;
+
+								Ext.Msg.prompt('Betal', 'Hvor mange tyvere lægger du? (max ' + count + ' 20ere)', function(btn, text){
+										if (btn == 'ok') {
+											var num = parseInt(text);
+											if (isNaN(num) || num < 1 || num > count)
+												return Ext.Msg.alert({
+													title: 'Err'
+												, msg: 'Suck this bitch'
+												, icon: Ext.MessageBox.WARNING
+												});
+
+											Ext.Ajax.request({
+												url: '/service/user_pays_bet'
+											,	params: {
+													how_many: num
+												,	user: who
+												}
+											,	method: 'POST'
+											,	success: function(req, opt) {
+													console.debug(req);
+												}
+											});
+											
+											
+										}
+								});
+							}
+						}]
+					}
 				]
 			}
 		,	{
 				title: 'Kalender'
 			, xtype: 'gridpanel'
+			,	id: 'cal_grid'
 			, listeners: {
 					activate: function(tab){
-						Ext.getStore('cal').load();
+						Ext.getStore('cal').load(load_cal);
 					}
 				}
 				,	store: "cal"
 				,	columnLines: true
 				, columns: [
-						{ text: "Race", dataIndex: 'name', flex: 1 }
-					,	{ text: "Start", dataIndex: 'f1_start' }
+						{ text: "Start", dataIndex: 'f1_start' }
+					,	{ text: "Race", dataIndex: 'name', flex: 1 }
 					]
 			}
 		]
 	, listeners: {
 			afterrender: function() {
-				//tabs.setActiveTab(1);
+				new Ext.util.DelayedTask(tabs.setActiveTab, tabs, [4]).delay(1000);
 			}
 		}
 	});

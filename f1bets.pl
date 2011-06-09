@@ -84,7 +84,6 @@ sub get_bet_by_user {
 
 sub create_bet {
 	my ($self) = @_;
-	return unless auth($self);
 
 	my %p;
 	my @list = @{$self->req->body_params->params};
@@ -120,6 +119,21 @@ sub create_bet {
 	my $params = join(", ", ("?") x @fields);
 	my ($guid) = $dbh->selectrow_array(qq!INSERT INTO bet ($fields) VALUES($params) RETURNING id!, {}, @p{@fields});
 	return { guid => $guid, success => Mojo::JSON->true };
+}
+
+sub create_user_pays_bet {
+	my ($self) = @_;
+
+	my $params = $self->req->params->to_hash;
+
+	return { } unless $params->{user} && $params->{how_many};
+
+	ddx($params);
+
+	my $msg = sprintf('User %d payed %d', $params->{user}, $params->{how_many});
+	$dbh->do('INSERT INTO f1_log(msg, log_type, who) VALUES(?, ?, ?)', {}, $msg, 'pay', $self->session('user_id'));
+
+	return { guid => 0, success => Mojo::JSON->true };
 }
 
 sub convert_danish_date {

@@ -3,3 +3,7 @@
 	font: bold 22px verdana;
 	color: #1A4AAE;
 }
+
+tr.sel td {
+	background-color: #D2DFF2;
+}
