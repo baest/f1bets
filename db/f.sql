@@ -28,13 +28,11 @@ CREATE INDEX bet_season ON bet (season);
 
 CREATE OR REPLACE FUNCTION tf_save_bet() RETURNS trigger AS $$
 BEGIN
-	IF true OR random() < .03 OR NEW.house_won THEN
+	IF true OR random() < .03 THEN
 		RAISE NOTICE 'house!!!';
 		UPDATE bet SET house_won = true, bookie_won = NULL WHERE id = NEW.id;
-		INSERT INTO finished_bet(bet_id, payee, twenties)
-			SELECT NEW.id, payee, 1
-			FROM unnest(NEW.takers) as payee;
-		INSERT INTO finished_bet(bet_id, payee, twenties) VALUES (NEW.id, NEW.bookie, array_length(NEW.takers, 1));
+		INSERT INTO finished_bet(bet_id, payee, twenties) SELECT NEW.id, payee, 1 FROM unnest(NEW.takers) as payee;
+		INSERT INTO finished_bet(bet_id, payee, twenties) VALUES (NEW.id, NEW.bookie, 1); -- bookie should only pay to house in this case
 	END IF;
 
 	RETURN NEW;
@@ -51,9 +49,7 @@ BEGIN
 
 	IF NEW.bookie_won IS NOT NULL THEN
 		IF NEW.bookie_won THEN
-			INSERT INTO finished_bet(bet_id, payee, twenties)
-				SELECT NEW.id, payee, 1
-				FROM unnest(NEW.takers) as payee;
+			INSERT INTO finished_bet(bet_id, payee, twenties) SELECT NEW.id, payee, 1 FROM unnest(NEW.takers) as payee;
 		END IF;
 
 		IF NOT NEW.bookie_won THEN
