@@ -102,10 +102,10 @@ CREATE TABLE f1_log (
 );
 
 COPY b_user ("name", fullname, password) FROM STDIN WITH DELIMITER '|';
-baest|baest|LfM8OLFsAgpQ0UYu
-michael|Michael Halberg|michael01
-klein|Søren Klein|klein02
-kenneth|Kenneth Halberg|kenneth03
+baest|baest|b7242783cf2762e3e30d63299a7afb924ec8887d73086063c425d99f07257639
+michael|Michael Halberg|5ec9eca24f920d406768ece79616a66a0b0517496adf475d650ca36db9ac49d2
+klein|Søren Klein|5ec9eca24f920d406768ece79616a66a0b0517496adf475d650ca36db9ac49d2
+kenneth|Kenneth Halberg|5ec9eca24f920d406768ece79616a66a0b0517496adf475d650ca36db9ac49d2
 \.
 
 CREATE OR REPLACE FUNCTION f_get_user(p_name TEXT) RETURNS BIGINT AS $$
@@ -155,4 +155,4 @@ INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VA
 --Hvert bet har en sidste deltagelse og en udløbsdato. Alle bets har en udbyder og x takers. Enten betaler takers eller udbyder
 
 \i db/f1_view.sql
-\i db/data-f1_cal.sql
+

@@ -7,6 +7,7 @@ use File::Slurp 'slurp';
 use DBI;
 use utf8;
 use Data::Dump;
+use Digest::SHA 'sha256_hex';
 
 my $dbh = DBI->connect("dbi:Pg:dbname=f1bets", 'pgsql', '');
 
@@ -33,7 +34,7 @@ sub auth {
 
 sub check_user {
 	my ($username, $password) = @_;
-	my ($id) = $dbh->selectrow_array('SELECT id FROM b_user WHERE name = ? AND password = ?', {}, $username, $password);
+	my ($id) = $dbh->selectrow_array('SELECT id FROM b_user WHERE name = ? AND password = ?', {}, $username, sha256_hex($password));
 	return $id;
 }
 
