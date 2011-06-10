@@ -118,8 +118,11 @@ sub create_bet {
 	my @fields = qw/bookie takers description bet_start bet_end/;
 	my $fields = join(', ', @fields);
 	my $params = join(", ", ("?") x @fields);
-	my ($guid) = $dbh->selectrow_array(qq!INSERT INTO bet ($fields) VALUES($params) RETURNING id!, {}, @p{@fields});
-	return { guid => $guid, success => Mojo::JSON->true };
+	my ($id) = $dbh->selectrow_array(qq!INSERT INTO bet ($fields) VALUES($params) RETURNING id!, {}, @p{@fields});
+
+	insert_log($self, sprintf('New bet with id %d', $id), 'new_bet');
+
+	return { id => $id, success => Mojo::JSON->true };
 }
 
 sub create_user_pays_bet {
@@ -129,12 +132,20 @@ sub create_user_pays_bet {
 
 	return { } unless $params->{user} && $params->{how_many};
 
-	ddx($params);
-
 	my $msg = sprintf('User %d payed %d', $params->{user}, $params->{how_many});
-	$dbh->do('INSERT INTO f1_log(msg, log_type, who) VALUES(?, ?, ?)', {}, $msg, 'pay', $self->session('user_id'));
+	insert_log($self, $msg, 'pay');
 
-	return { guid => 0, success => Mojo::JSON->true };
+	#TODO actually insert payment
+
+	return { id => 0, success => Mojo::JSON->true };
+}
+
+sub insert_log {
+	my ($self, $msg, $log_type) = @_;
+
+	$dbh->do('INSERT INTO f1_log(msg, log_type, who) VALUES(?, ?, ?) RETURNING id', {}, $msg, $log_type, $self->session('user_id'));
+
+	#TODO? get id?
 }
 
 sub convert_danish_date {
