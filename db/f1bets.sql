@@ -154,6 +154,5 @@ INSERT INTO bet (bookie, takers, description, bet_start, bet_end, bookie_won) VA
 --Huset har 1% chance for at tage et bet og vinder 100% af betsne
 --Hvert bet har en sidste deltagelse og en udløbsdato. Alle bets har en udbyder og x takers. Enten betaler takers eller udbyder
 
-\i db/f_view.sql
-\i db/f1_cal.sql
-
+\i db/f1_view.sql
+\i db/data-f1_cal.sql
