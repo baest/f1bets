@@ -85,7 +85,7 @@ function register_models_stores() {
 		, {name: 'bet_start_text', type: 'text'}
 		, {name: 'bet_end_text', type: 'text'}
 		, {name: 'bookie_won', type: 'boolean'}
-		, {name: 'house_won', type: 'boolean'}
+		, {name: 'house_takes', type: 'boolean'}
 		, {name: 'is_finished', type: 'boolean'}
 		]
 		, belongsTo: 'user'
@@ -100,7 +100,7 @@ function register_models_stores() {
 		, {name: 'description', type: 'text'}
 		, {name: 'user_lost', type: 'boolean'}
 		, {name: 'twenties', type: 'int'}
-		, {name: 'house_won', type: 'boolean'}
+		, {name: 'house_takes', type: 'boolean'}
 		, {name: 'is_finished', type: 'boolean'}
 		, {name: 'is_paid', type: 'boolean'}
 		]
@@ -364,7 +364,7 @@ Ext.onReady(function(){
 				, { text: "Start", dataIndex: 'bet_start_text' }
 				, { text: "Slut", dataIndex: 'bet_end_text' }
 				, { text: "Better vinder", dataIndex: 'bookie_won', xtype: 'boolheader' }
-				, { text: "Huset!", dataIndex: 'house_won', xtype: 'boolheader' }
+				, { text: "Huset!", dataIndex: 'house_takes', xtype: 'boolheader' }
 				, { text: "Afsluttet", dataIndex: 'is_finished', xtype: 'boolheader' }
 				]
 			})
@@ -419,10 +419,10 @@ Ext.onReady(function(){
 						}
 					, { 
 							text: "Huset!"
-						,	dataIndex: 'house_won'
+						,	dataIndex: 'house_takes'
 						,	xtype: 'boolheader'
 						,	summaryType: function(x) { 
-								return count_true('house_won', x); 
+								return count_true('house_takes', x); 
 							}
 						}
 					, { 
