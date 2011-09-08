@@ -33,13 +33,7 @@ function load_cal (records, operation, success) {
 		i--;
 
 	var view = Ext.getCmp('cal_grid').getView();
-
-	//console.debug(view.getNodeByRecord(records[i]));
-
-	console.debug(view);
-	//console.debug(view.getNode(1));
-	//console.debug(view.getNodes());
-	//console.debug(view.all.elements);
+	Ext.fly(view.getNode(i)).addCls('sel');
 }
 
 function register_models_stores() {
@@ -280,7 +274,7 @@ function get_bet_form() {
 						return;
 						
 					me.store.filterBy(function(rec) { return (rec.get('id') != value) });
-					console.debug(me.store);
+					//console.debug(me.store);
 				}
 			}
 		},{
@@ -342,7 +336,7 @@ function get_bet_form() {
 		]
 	});
 
-	console.debug(Ext.getStore('user'));
+	//console.debug(Ext.getStore('user'));
 
 
 	//tform.setValues();
@@ -527,32 +521,6 @@ Ext.onReady(function(){
 						//});
 
 						store.load(load_cal);
-					}
-				,	viewready: function() {
-						console.debug('yyy');
-	console.debug(Ext.getCmp('cal_grid'));
-	console.debug(Ext.getCmp('cal_grid').getView());
-						var view = Ext.getCmp('cal_grid').getView();
-	console.debug(view.getNode(1));
-	console.debug(view.getNodes());
-
-						var store = Ext.getStore('cal')
-							,	length = store.getCount()
-							,	now = Ext.Date.now()
-							,	i = 0
-							,	cdate = 0;
-						
-						do {
-							cdate = Ext.Date.clearTime(Ext.Date.parse(store.getAt(i).get('f1_start'), "d/m-Y g:i"));
-							++i;
-						}
-						while(Ext.Date.add(cdate, Ext.Date.DAY, 1) < now);
-
-						if (i > 0)
-							i--;
-
-						var view = Ext.getCmp('cal_grid').getView();
-						Ext.fly(view.getNode(1)).addCls('sel');
 					}
 				}
 				,	store: "cal"
