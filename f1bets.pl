@@ -80,7 +80,7 @@ sub get_bet_status{
 	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_finished_bet_status ORDER BY user!, { Slice => {} });
 }
 sub get_bet_by_user {
-	my $data = $dbh->selectall_arrayref(q!SELECT (bu.id || '_' || bu."user") as bet_user, bu.*, u.name as user_name FROM v_bet_by_user bu JOIN b_user u ON (u.id = bu."user") ORDER BY user, bet_start!, { Slice => {} });
+	my $data = $dbh->selectall_arrayref(q!SELECT (id || '_' || user_name) as bet_user, *, (twenties > 0) as user_lost FROM v_bet_by_user ORDER BY user_name, bet_start!, { Slice => {} });
 }
 
 sub create_bet {
