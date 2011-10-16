@@ -369,10 +369,10 @@ Ext.onReady(function(){
 				]
 			})
 		,	get_bet_form()
-		,	{
+/*		,	{
 				title: 'Kontigent'
 			,	html: '&lt;empty panel&gt;'
-			}
+			}*/
 		,	{
 				title: 'Bet overblik'
 			, xtype: 'gridpanel'
