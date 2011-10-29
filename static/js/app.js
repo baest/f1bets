@@ -460,7 +460,7 @@ Ext.onReady(function(){
             xtype:'actioncolumn'
 					, align: "center"
 					,	items: [{
-							icon: 'img/dankort.png'  // Use a URL in the icon config
+							icon: 'img/money.png'  // Use a URL in the icon config
 						,	tooltip: 'Betal'
 						,	handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex)
