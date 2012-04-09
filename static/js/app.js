@@ -1,9 +1,55 @@
+//Ext.Loader.setPath('Ext.ux', '../ux');
+
+Ext.require([
+	'Ext.selection.CellModel'
+//,	'Ext.ux.CheckColumn'
+]);
+
+Ext.define('Ext.ux.CheckBoxColumn', {
+	extend: 'Ext.grid.column.Column',
+	alias: 'widget.checkboxcolumn',
+
+	constructor: function() {
+		this.addEvents(
+			'checkchange'
+			);
+		this.callParent(arguments);
+	},
+
+	processEvent: function(type, view, cell, recordIndex, cellIndex, e) {
+		if (type == 'mousedown' || (type == 'keydown' && (e.getKey() == e.ENTER || e.getKey() == e.SPACE))) {
+			var record = view.panel.store.getAt(recordIndex),
+			dataIndex = this.dataIndex,
+			checked = !record.get(dataIndex);
+
+			record.set(dataIndex, checked);
+			this.fireEvent('checkchange', this, recordIndex, checked);
+			// cancel selection.
+			return false;
+		} 
+		else
+			return this.callParent(arguments);
+	},
+
+	renderer : function(value){
+		var cssPrefix = Ext.baseCSSPrefix,
+		cls = [cssPrefix + 'grid-checkboxheader'];
+
+		if (value) {
+			cls.push(cssPrefix + 'grid-checkboxheader-checked');
+		}
+		return '<div class="' + cls.join(' ') + '">&#160;</div>';
+	}
+});
+
 function get_user(id, td, obj) {
 	return Ext.getStore('user').getById(id).get('name');
 }
 function get_users(arr) {
 	return arr.map(get_user).join(', ');
 }
+
+var simple_reader = new Ext.data.JsonReader({});
 
 function count_true (key, records){
 	var i = 0,
@@ -355,18 +401,45 @@ Ext.onReady(function(){
 	,	items: [
 			new Ext.grid.GridPanel({
 				title: 'Se bets'
+			,	id: 'se_bets'
 			,	store: 'bet'
 			,	columnLines: true
 			, columns: [
-					{ text: "Better", dataIndex: 'bookie', renderer: get_user }
+					{ 
+						text: "Better"
+					, dataIndex: 'bookie'
+					, renderer: get_user
+					}
 				,	{ text: "Deltagere", dataIndex: 'takers', flex: 1, renderer: get_users }
-				, { text: "Bet", dataIndex: 'description', flex: 1 }
+				, { 
+						text: "Bet"
+					, dataIndex: 'description'
+					, flex: 1
+					, editor: {
+							allowBlank: false
+						}
+					}
 				, { text: "Start", dataIndex: 'bet_start_text' }
 				, { text: "Slut", dataIndex: 'bet_end_text' }
-				, { text: "Better vinder", dataIndex: 'bookie_won', xtype: 'boolheader' }
+				, { 
+						text: "Better vinder"
+					,	dataIndex: 'bookie_won'
+					,	xtype: 'checkboxcolumn'
+					, editor: { }
+					}
 				, { text: "Huset!", dataIndex: 'house_takes', xtype: 'boolheader' }
-				, { text: "Afsluttet", dataIndex: 'is_finished', xtype: 'boolheader' }
+				, { 
+						text: "Afsluttet"
+					,	dataIndex: 'is_finished'
+					,	xtype: 'boolheader'
+					}
 				]
+//				, selType: 'cellmodel'
+				,	plugins: [
+					Ext.create('Ext.grid.plugin.CellEditing', {
+						clicksToEdit: 1
+					})
+				],
 			})
 		,	get_bet_form()
 /*		,	{
@@ -531,11 +604,37 @@ Ext.onReady(function(){
 					]
 			}
 		]
-	, listeners: {
-			afterrender: function() {
-				new Ext.util.DelayedTask(tabs.setActiveTab, tabs, [4]).delay(1000);
+//	, listeners: {
+//			afterrender: function() {
+//				new Ext.util.DelayedTask(tabs.setActiveTab, tabs, [4]).delay(1000);
+//			}
+//		}
+	});
+
+	Ext.getCmp('se_bets').on('edit', function(editor, e) {
+		var rec = e.record
+			,	changes = rec.getChanges();
+
+		if (Ext.isEmpty(changes))
+			return;
+
+		changes.id = rec.data.id;
+
+		console.debug(changes);
+
+		Ext.Ajax.request({
+			url: '/call/upd_bet'
+		,	jsonData: changes
+		,	method: 'POST'
+		,	success: function(req, opt) {
+				var data = simple_reader.getResponseData(req);
+
+				rec.commit();
 			}
-		}
+		,	failure: function() {
+				console.error('xxx');
+			}
+		});
 	});
 
 	new Ext.Viewport({
