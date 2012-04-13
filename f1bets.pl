@@ -74,10 +74,10 @@ sub get_bet {
 	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_bet!, { Slice => {} });
 }
 sub get_cal {
-	my $data = $dbh->selectall_arrayref(q!SELECT name, to_datetext(start) as f1_start FROM f1_cal ORDER BY start!, { Slice => {} });
+	my $data = $dbh->selectall_arrayref(q!SELECT name, to_datetext(start) as f1_start FROM f1_cal WHERE EXTRACT(year FROM start) = EXTRACT(year FROM CURRENT_DATE) ORDER BY start!, { Slice => {} });
 }
 sub get_bet_status{
-	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_finished_bet_status ORDER BY user!, { Slice => {} });
+	my $data = $dbh->selectall_arrayref(q!SELECT *, (lost - paid) as owes  FROM v_finished_bet_status ORDER BY user!, { Slice => {} });
 }
 sub get_bet_by_user {
 	my $data = $dbh->selectall_arrayref(q!SELECT (id || '_' || user_name) as bet_user, *, (twenties > 0) as user_lost FROM v_bet_by_user ORDER BY user_name, bet_start!, { Slice => {} });

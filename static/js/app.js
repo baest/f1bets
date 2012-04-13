@@ -152,6 +152,7 @@ function register_models_stores() {
 				{ name: 'user', type: 'int' }
 			,	{ name: 'lost', type: 'int' }
 			,	{ name: 'paid', type: 'int' }
+			,	{ name: 'owes', type: 'int' }
 			]
 		, belongsTo: 'user'
 	});
@@ -455,7 +456,7 @@ Ext.onReady(function(){
 			,	columnLines: true
 			, columns: [
 					{ text: "User", dataIndex: 'user', flex: 1, renderer: get_user }
-				,	{ text: "20ere", dataIndex: 'lost' }
+				,	{ text: "20ere", dataIndex: 'owes' }
 				, { 
             xtype:'actioncolumn'
 					, align: "center"
@@ -464,7 +465,7 @@ Ext.onReady(function(){
 						,	tooltip: 'Betal'
 						,	handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex)
-										count = rec.get('lost')
+										count = rec.get('owes')
 										who = rec.get('user');
 									;
 
