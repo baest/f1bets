@@ -8,14 +8,23 @@ use DBI;
 use utf8;
 use Data::Dump;
 use Digest::SHA 'sha256_hex';
-
-my $dbh = DBI->connect("dbi:Pg:dbname=f1bets", 'pgsql', '');
-
-$dbh->{pg_enable_utf8} = 1;
+use Mojo::JSON;
 
 plugin 'basic_auth';
-app->static->root(File::Basename::dirname(app->static->root) . '/static');
+my $paths = app->static->paths;
+app->static->paths([File::Basename::dirname($paths->[0]) . '/static']);
 app->secret('somewhatmoresecret password');
+my $json = Mojo::JSON->new;
+
+app->attr(dbh => sub {
+		my $self = shift;
+
+		my $dbh = DBI->connect("dbi:Pg:dbname=f1bets", 'pgsql', '');
+
+		$dbh->{pg_enable_utf8} = 1;
+
+		return $dbh;
+});
 
 sub auth {
 	my ($self) = @_;
@@ -23,7 +32,7 @@ sub auth {
 
 	return $id if $id;
 
-	$id = $self->basic_auth( realm => \&check_user );
+	$id = $self->basic_auth( realm => sub { $self->check_user(@_); } );
 
 	if ($id) {
 		$self->session(user_id => $id);
@@ -33,16 +42,14 @@ sub auth {
 }
 
 sub check_user {
-	my ($username, $password) = @_;
-	my ($id) = $dbh->selectrow_array('SELECT id FROM b_user WHERE name = ? AND password = ?', {}, $username, sha256_hex($password));
+	my ($self, $username, $password) = @_;
+	my ($id) = $self->app->dbh->selectrow_array('SELECT id FROM b_user WHERE name = ? AND password = ?', {}, $username, sha256_hex($password));
 	return $id;
 }
 
-get '/' => sub { 
+get '/' => sub {
 	my ($self) = @_;
 	return unless auth($self);
-	
-	$self->stash(extjs_server => 'http://noedweb/'); 
 } => 'index';
 
 get '/service/:service' => sub {
@@ -51,8 +58,7 @@ get '/service/:service' => sub {
 
 	my $func = \&{'get_' . $self->param('service')};
 
-	$self->render_json({ $self->param('service') => $func->($self) });
-	return;
+	return $self->render_json({ $self->param('service') => $func->($self) });
 } => 'json';
 
 post '/service/:service' => sub {
@@ -62,25 +68,40 @@ post '/service/:service' => sub {
 	my $func = \&{'create_' . $self->param('service')};
 
 #$self->render_json({ $self->param('service') => $func->($self) });
-	$self->render_json($func->($self));
-	return;
+	return $self->render_json($func->($self));
+} => 'json';
+
+post '/call/:service' => sub {
+	my $self = shift;
+	return unless auth($self);
+
+	my $data = $json->decode($self->req->build_body);
+
+	if (my $sub = __PACKAGE__->can($self->param('service'))) {
+		return $self->render_json($sub->($self, $data));
+	}
+	return $self->render_json({ error => 'Unknown call: ' . $self->param('service') });
 } => 'json';
 
 sub get_user {
 	my $self = shift;
-	my $data = $dbh->selectall_arrayref(q!SELECT id, name, (? = id) as me FROM b_user WHERE name <> 'house' ORDER BY name!, { Slice => {} }, $self->session('user_id'));
+	my $data = $self->app->dbh->selectall_arrayref(q!SELECT id, name, (? = id) as me FROM b_user WHERE name <> 'house' ORDER BY name!, { Slice => {} }, $self->session('user_id'));
 }
 sub get_bet {
-	my $data = $dbh->selectall_arrayref(q!SELECT * FROM v_bet!, { Slice => {} });
+	my $self = shift;
+	my $data = $self->app->dbh->selectall_arrayref(q!SELECT * FROM v_bet!, { Slice => {} });
 }
 sub get_cal {
-	my $data = $dbh->selectall_arrayref(q!SELECT name, to_datetext(start) as f1_start FROM f1_cal WHERE EXTRACT(year FROM start) = EXTRACT(year FROM CURRENT_DATE) ORDER BY start!, { Slice => {} });
+	my $self = shift;
+	my $data = $self->app->dbh->selectall_arrayref(q!SELECT name, to_datetext(start) as f1_start FROM f1_cal WHERE EXTRACT(year FROM start) = EXTRACT(year FROM CURRENT_DATE) ORDER BY start!, { Slice => {} });
 }
 sub get_bet_status{
-	my $data = $dbh->selectall_arrayref(q!SELECT *, (lost - paid) as owes  FROM v_finished_bet_status ORDER BY user!, { Slice => {} });
+	my $self = shift;
+	my $data = $self->app->dbh->selectall_arrayref(q!SELECT *, (lost - paid) as owes  FROM v_finished_bet_status ORDER BY user!, { Slice => {} });
 }
 sub get_bet_by_user {
-	my $data = $dbh->selectall_arrayref(q!SELECT (id || '_' || user_name) as bet_user, *, (twenties > 0) as user_lost FROM v_bet_by_user ORDER BY user_name, bet_start!, { Slice => {} });
+	my $self = shift;
+	my $data = $self->app->dbh->selectall_arrayref(q!SELECT (id || '_' || user_name) as bet_user, *, (twenties > 0) as user_lost FROM v_bet_by_user ORDER BY user_name, bet_start!, { Slice => {} });
 }
 
 sub create_bet {
@@ -118,11 +139,54 @@ sub create_bet {
 	my @fields = qw/bookie takers description bet_start bet_end/;
 	my $fields = join(', ', @fields);
 	my $params = join(", ", ("?") x @fields);
-	my ($id) = $dbh->selectrow_array(qq!INSERT INTO bet ($fields) VALUES($params) RETURNING id!, {}, @p{@fields});
+	my ($id) = $self->app->dbh->selectrow_array(qq!INSERT INTO bet ($fields) VALUES($params) RETURNING id!, {}, @p{@fields});
 
 	insert_log($self, sprintf('New bet with id %d', $id), 'new_bet');
 
 	return { id => $id, success => Mojo::JSON->true };
+}
+
+sub upd_bet {
+	my ($self, $data) = @_;
+
+	if (exists $data->{id}) {
+		my @possible_fields = qw/description is_finished/;
+		my @fields = ();
+		my @values = ();
+		my @x = ();
+
+		foreach my $field (@possible_fields) {
+			if (exists $data->{$field}) {
+				push @fields, $field;
+				push @values, bet_parse_value($field, $data->{$field}, $data);
+			}
+
+			push @x, $data->{$field};
+		}
+
+		ddx(\@x);
+
+		push @values, $data->{id};
+		my $sql = 'UPDATE bet SET ' . join(', ', map { "$_ = ?" } @fields) . ' WHERE id = ? RETURNING id';
+
+		my ($id) = $self->app->dbh->selectrow_array($sql, {}, @values);
+
+		return { id => $id, success => Mojo::JSON->true };
+	}
+
+	return { error => 'Incorrect data received' };
+}
+
+sub bet_parse_value {
+	my ($field, $value, $data) = @_;
+
+	given ($field) {
+		when (/is_finished/) {
+		}
+		default {
+			return $value;
+		}
+	}
 }
 
 sub create_user_pays_bet {
@@ -143,7 +207,7 @@ sub create_user_pays_bet {
 sub insert_log {
 	my ($self, $msg, $log_type) = @_;
 
-	$dbh->do('INSERT INTO f1_log(msg, log_type, who) VALUES(?, ?, ?) RETURNING id', {}, $msg, $log_type, $self->session('user_id'));
+	$self->app->dbh->do('INSERT INTO f1_log(msg, log_type, who) VALUES(?, ?, ?) RETURNING id', {}, $msg, $log_type, $self->session('user_id'));
 
 	#TODO? get id?
 }

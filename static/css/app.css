@@ -7,3 +7,19 @@
 tr.sel td {
 	background-color: #D2DFF2 !important;
 }
+
+.x-grid-checkboxheader {
+    height: 14px;
+    background-image: url('/img/unchecked.gif');
+    background-position: 50% -2px;
+    background-repeat: no-repeat;
+    background-color: transparent;
+}
+
+.x-grid-checkboxheader-checked {
+    background-image: url('/img/checked.gif');
+}
+
+.x-grid-checkboxheader-editor .x-form-cb-wrap {
+    text-align: center;
+}
