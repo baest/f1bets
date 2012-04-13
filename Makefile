@@ -1,3 +1,9 @@
+all:
+	sudo starman --port 80 --error-log run/error_log --pid run/f1bets.pid -D f1bets.pl
+#	sudo hypnotoad f1bets.pl
+
+reload:
+	sudo kill -HUP `cat run/f1bets.pid`
 
 run:
 		./f1bets.pl daemon --reload
